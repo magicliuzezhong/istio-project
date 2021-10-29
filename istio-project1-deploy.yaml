@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: istio-project-deployment1
+  namespace: test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: istio-project
+      version: "1.2"
+  template:
+    metadata:
+      labels:
+        app: istio-project
+        version: "1.2"
+    spec:
+      containers:
+        - image: registry.cn-hangzhou.aliyuncs.com/liuzezhong_repo/istio-project:1.2
+          name: istio-project1
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-project-service1
+  namespace: test
+spec:
+  selector:
+    app: istio-project
+    version: "1.2"
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+---
+#apiVersion: networking.istio.io/v1alpha3
+#kind: DestinationRule
+#metadata:
+#  name: istio-project-destination-rule
+#  namespace: test
+#spec:
+#  host: istio-project-service1
+#  subsets:
+#    - name: v1
+#      labels:
+#        version: "1.2"
+#---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: istio-project-gateway1
+  namespace: test
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: istio-project-port1
+        protocol: HTTP
+      hosts:
+        - istio-project.test.com
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: istio-project-virtual-service
+  namespace: test
+spec:
+  hosts:
+    - istio-project.test.com
+  gateways:
+    - istio-project-gateway1
+  http:
+    - route:
+        - destination:
+            host: istio-project-service1
+            port:
+              number: 8080
